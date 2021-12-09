@@ -29,4 +29,5 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'location', 'age', 'gender',)
     search_fields = ('user__username',)

@@ -21,13 +21,11 @@ class User(AbstractUser):
     email = models.EmailField(max_length=254, unique=True)
     role = models.CharField(max_length=10, blank=True,
                             choices=UserRoles.choices, default=UserRoles.USER)
-    first_name = models.CharField(
-        max_length=150, verbose_name='First name')
-    last_name = models.CharField(
-        max_length=150, verbose_name='Last name')
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     @property
     def is_admin(self):
@@ -47,13 +45,10 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    first_name = models.CharField(max_length=50, blank=True, )
-    last_name = models.CharField(max_length=50, blank=True)
     bio = models.TextField(max_length=500, blank=True)
     location = models.CharField(max_length=30, blank=True)
     birth_date = models.DateField(blank=True, null=True)
     age = models.PositiveIntegerField(blank=True, null=True)
-
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
 
 
