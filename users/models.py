@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.utils.translation import ugettext_lazy as _
 
 
 class UserRoles(models.TextChoices):
@@ -17,15 +16,18 @@ GENDER_CHOICES = (
 
 
 class User(AbstractUser):
-    username = models.CharField(max_length=50, unique=True)
-    email = models.EmailField(max_length=254, unique=True)
-    role = models.CharField(max_length=10, blank=True,
+    email = models.EmailField(_('email'), max_length=254, unique=True,
+                              db_index=True)
+    role = models.CharField(_('role'), max_length=10, blank=True,
                             choices=UserRoles.choices, default=UserRoles.USER)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
+    username = models.CharField(max_length=50, unique=True)
+    bio = models.TextField(_('description'), blank=True, )
+    is_verified = models.BooleanField(_('verified'), default=False)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ['username']
 
     @property
     def is_admin(self):
@@ -41,18 +43,3 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ['username']
-
-
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(max_length=500, blank=True)
-    location = models.CharField(max_length=30, blank=True)
-    birth_date = models.DateField(blank=True, null=True)
-    age = models.PositiveIntegerField(blank=True, null=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
-
-
-@receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.create(user=instance)

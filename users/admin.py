@@ -1,33 +1,30 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.utils.translation import ugettext_lazy as _
 
-from .forms import CustomUserChangeForm, CustomUserCreationForm
-from .models import User, Profile
+from .forms import MyUserChangeForm, CustomUserCreationForm
+from .models import User
 
 
-class CustomUserAdmin(UserAdmin):
-    form = CustomUserChangeForm
+class MyUserAdmin(UserAdmin):
+    form = MyUserChangeForm
     add_form = CustomUserCreationForm
     model = User
-    list_display = ('email', 'username', 'is_staff', 'is_active',)
-    list_filter = ('is_staff', 'is_active',)
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': (
-                'email', 'username', 'password1',
-                'password2',
-                'is_staff', 'is_active')}
-         ),
+
+    list_display = (
+        'email', 'username', 'is_staff', 'is_verified', 'last_login')
+
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        (_('Personal info'),
+         {'fields': ('username', 'first_name', 'last_name', 'bio')}),
+        (_('Permissions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_verified',
+                       'role', 'groups',
+                       'user_permissions'),
+        }),
+        (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
-    search_fields = ('email', 'username')
-    ordering = ('email',)
 
 
-admin.site.register(User, CustomUserAdmin)
-
-
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'location', 'age', 'gender',)
-    search_fields = ('user__username',)
+admin.site.register(User, MyUserAdmin)
