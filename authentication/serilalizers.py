@@ -1,7 +1,10 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
+
+from authentication.utils import decode_uid
 
 User = get_user_model()
 
@@ -65,7 +68,28 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class TokenSerializer(serializers.ModelSerializer):
-    token = serializers.CharField(max_length=100)
+    token = serializers.CharField()
 
     class Meta:
         model = Token
+
+
+class UidTokenSerilaizer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = None
+
+    def validate(self, attrs):
+        try:
+            user_id = decode_uid(attrs.get('uid'))
+            self.user = User.objects.get(id=user_id)
+        except Exception as e:
+            raise serializers.ValidationError('invalid uid code')
+
+        if not default_token_generator.check_token(self.user,
+                                                   attrs.get('token')):
+            raise serializers.ValidationError('invalid token')
+        return attrs
