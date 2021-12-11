@@ -113,8 +113,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-AUTHENTICATION_BACKENDS = [
-                           'django.contrib.auth.backends.ModelBackend', ]
+AUTHENTICATION_BACKENDS = ('authentication.backends.EmailBackend',)
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 

@@ -1,30 +1,34 @@
 from django.contrib.auth import get_user_model
-from django.contrib.auth.backends import BaseBackend
+from django.contrib.auth.backends import ModelBackend
+from rest_framework.authentication import BaseAuthentication
 
-User = get_user_model()
+UserModel = get_user_model()
 
 
-class AuthenticationBackend(BaseBackend):
+class EmailBackend(ModelBackend):
     """
     Authentication Backend
-    To manage the custom authentication process of user at email and password
+    To manage the custom authentication process of
+    user at email and password, and is_verified status
     """
 
-    def authenticate(self, **credentials):
-        email = credentials.get('email', credentials.get('username'))
-        try:
-            user = User.objects.get(email=email)
-            print(user)
-        except User.DoesNotExist:
-            return None
-        if not user.check_password(credentials['password']):
-            return None
-        # if not user.is_verified:
-        #     return None
-        return user
+    def authenticate(self, request, **credentials):
 
-    def get_user(self, user_id):
+        email = credentials.get(UserModel.USERNAME_FIELD,
+                                credentials.get('username'))
+
         try:
-            return User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return None
+            user = UserModel.objects.get(email=email)
+        except UserModel.DoesNotExist:
+            UserModel().set_password(credentials['password'])
+        else:
+
+            if not user.check_password(credentials['password']):
+                return None
+            if not (user.is_staff or user.is_verified):
+                return None
+
+            return user
+
+
+
