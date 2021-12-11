@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
-from rest_framework.authentication import BaseAuthentication
 
 UserModel = get_user_model()
 
@@ -23,12 +22,13 @@ class EmailBackend(ModelBackend):
             UserModel().set_password(credentials['password'])
         else:
 
-            if not user.check_password(credentials['password']):
-                return None
-            if not (user.is_staff or user.is_verified):
-                return None
+            if (user.check_password(credentials['password']) and
+                    self.user_can_authenticate(user)):
+                return user
 
-            return user
+    def user_can_authenticate(self, user):
 
-
-
+        is_active = getattr(user, 'is_active', None)
+        is_verified = getattr(user, 'is_verified', None)
+        staff = user.is_staff
+        return (is_active or is_active is None) and (staff or is_verified)

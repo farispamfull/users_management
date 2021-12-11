@@ -1,20 +1,36 @@
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from authentication import utils
-from .serilalizers import UserRegistrationSerializer, UserLoginSerializer
+from .serilalizers import (UserRegistrationSerializer, UserLoginSerializer,
+                           UidTokenSerilaizer)
+from .utils import send_token_for_email
+
+User = get_user_model()
 
 
-class UserRegistrationView(APIView):
+class UserRegistrationView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
+    queryset = User.objects.all()
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        send_token_for_email(self.request, user)
+
+
+class EmailVerifyView(APIView):
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = UidTokenSerilaizer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer.user.is_verified = True
+        serializer.user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserLoginView(APIView):
