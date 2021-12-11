@@ -20,8 +20,8 @@ class User(AbstractUser):
                               db_index=True)
     role = models.CharField(_('role'), max_length=10, blank=True,
                             choices=UserRoles.choices, default=UserRoles.USER)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
     username = models.CharField(max_length=50, unique=True)
     bio = models.TextField(_('description'), blank=True, )
     is_verified = models.BooleanField(_('verified'), default=False)
