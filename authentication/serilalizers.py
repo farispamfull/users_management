@@ -93,3 +93,12 @@ class UidTokenSerilaizer(serializers.Serializer):
                                                    attrs.get('token')):
             raise serializers.ValidationError('invalid token')
         return attrs
+
+
+class ResetPasswordSerializer(serializers.ModelSerializer):
+    email = serializers.SlugRelatedField(
+        slug_field='email', queryset=User.objects.all())
+
+    class Meta:
+        model = User
+        fields = ('email',)

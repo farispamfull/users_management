@@ -8,8 +8,9 @@ from rest_framework.views import APIView
 
 from authentication import utils
 from .serilalizers import (UserRegistrationSerializer, UserLoginSerializer,
-                           UidTokenSerilaizer)
-from .utils import send_token_for_email
+                           UidTokenSerilaizer, ResetPasswordSerializer)
+from .utils import (send_token_for_email, send_reset_password_for_email,
+                    logout_user)
 
 User = get_user_model()
 
@@ -43,8 +44,28 @@ class UserLoginView(APIView):
         return Response({'token': token.key}, status=status.HTTP_200_OK)
 
 
+class ResetPasswordView(APIView):
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.get(email=serializer.data.get('email'))
+        send_reset_password_for_email(request, user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ConfirmResetPassword(APIView):
+
+    def post(self, request):
+        serializer = UidTokenSerilaizer(request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.user.auth_token.delete()
+        logout_user(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def user_logout(request):
-    utils.logout(request)
+    logout_user(request)
     return Response(status=status.HTTP_204_NO_CONTENT)

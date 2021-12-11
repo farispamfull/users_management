@@ -47,3 +47,18 @@ def send_token_for_email(request, user):
               [user.email],
               fail_silently=False,
               )
+
+
+def send_reset_password_for_email(request, user):
+    uid = encode_uid(user.id)
+    token = default_token_generator.make_token(user)
+    current_site = get_current_site(request).domain
+    relative_link = 'auth/reset-password/confirm/'
+    absurl = f'http://{current_site}/{relative_link}/{uid}/{token}'
+    mail_subject = f'reset password link from {current_site}'
+    send_mail(mail_subject,
+              f'Your reset password link: {absurl}',
+              f'{settings.EMAIL_FROM}@{current_site}',
+              [user.email],
+              fail_silently=False,
+              )
