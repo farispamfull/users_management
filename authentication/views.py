@@ -1,8 +1,9 @@
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serilalizers import UserRegistrationSerializer
+from authentication import utils
+from .serilalizers import UserRegistrationSerializer, UserLoginSerializer
 
 
 class UserRegistrationView(APIView):
@@ -13,3 +14,13 @@ class UserRegistrationView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UserLoginView(APIView):
+    serializer_class = UserLoginSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = utils.login_user(request, serializer.user)
+        return Response({'token': token.key}, status=status.HTTP_200_OK)
