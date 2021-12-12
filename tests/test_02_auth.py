@@ -134,12 +134,6 @@ class Test02AuthAPI:
             'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
             'статус email юзера поменялся на True'
         )
-        # data = {'email': user.email,
-        #         'password': 'verDen134'}
-        # response = client.post('/api/v1/auth/token/login/', data=data)
-        # assert response.status_code == 200, (
-        #     'статус 200'
-        # )
 
     @pytest.mark.django_db(transaction=True)
     def test_04_users_login(self, client, user_client):
@@ -211,4 +205,3 @@ class Test02AuthAPI:
             'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
             'c подтвержденным email возвращается верный auth токен'
         )
-

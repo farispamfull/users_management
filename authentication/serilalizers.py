@@ -94,6 +94,10 @@ class UidTokenSerilaizer(serializers.Serializer):
             raise serializers.ValidationError('invalid token')
         return attrs
 
+class ResetPasswordConfirmSerializer(UidTokenSerilaizer):
+    new_password=password = serializers.CharField(
+        validators=[validate_password],
+        required=True)
 
 class ResetPasswordSerializer(serializers.ModelSerializer):
     email = serializers.SlugRelatedField(

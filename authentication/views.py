@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import CreateAPIView
@@ -8,7 +9,8 @@ from rest_framework.views import APIView
 
 from authentication import utils
 from .serilalizers import (UserRegistrationSerializer, UserLoginSerializer,
-                           UidTokenSerilaizer, ResetPasswordSerializer)
+                           UidTokenSerilaizer, ResetPasswordSerializer,
+                           ResetPasswordConfirmSerializer)
 from .utils import (send_token_for_email, send_reset_password_for_email,
                     logout_user)
 
@@ -30,6 +32,10 @@ class EmailVerifyView(APIView):
         serializer = UidTokenSerilaizer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.user.is_verified = True
+
+        if hasattr(serializer.user, 'last_login'):
+            serializer.user.last_login = now()
+
         serializer.user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -56,11 +62,24 @@ class ResetPasswordView(APIView):
 
 class ConfirmResetPassword(APIView):
 
+    # def refactor_user(self, serializer):
+    #     user = serializer.user
+    #     user.auth_token.delete()
+    #     user.set_password(serializer.data.get('password'))
+    #     user.last_login = now()
+    #     user.save()
+
     def post(self, request):
-        serializer = UidTokenSerilaizer(request.data)
+        serializer = ResetPasswordConfirmSerializer(request.data)
         serializer.is_valid(raise_exception=True)
+        serializer.user.set_password(serializer.data.get('password'))
+
+        if hasattr(serializer.user, 'last_login'):
+            serializer.user.last_login = now()
+
         serializer.user.auth_token.delete()
-        logout_user(request)
+        serializer.user.save()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
