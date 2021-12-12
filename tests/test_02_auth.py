@@ -5,7 +5,8 @@ from django.core import mail
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
-from .common import create_non_verify_user, parser_link
+from .common import (create_non_verify_user, parser_link, create_users_api,
+                     auth_client_by_token)
 
 
 class Test02AuthAPI:
@@ -139,3 +140,75 @@ class Test02AuthAPI:
         # assert response.status_code == 200, (
         #     'статус 200'
         # )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_04_users_login(self, client, user_client):
+        user, moderator = create_users_api(user_client)
+        data = {}
+        response = client.post('/api/v1/auth/token/login/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/auth/token/login/'
+            'c не правильными данными возвращается статус 400'
+        )
+        data = {'email': 'wrong@gmail',
+                'password': 'wrTfgh'}
+        response = client.post('/api/v1/auth/token/login/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/auth/token/login/'
+            'c не правильными данными возвращается статус 400'
+        )
+        data = {'email': 'wrong@gmail',
+                'password': 'wrTfgh'}
+        response = client.post('/api/v1/auth/token/login/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/auth/token/login/'
+            'c не правильными данными возвращается статус 400'
+        )
+
+        user.set_password('test24gd')
+        user.save()
+        data = {'email': user.email,
+                'password': 'test24gd'}
+        response = client.post('/api/v1/auth/token/login/',
+                               data=data)
+
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
+            'c не подтвержденным email возвращается статус 400'
+        )
+        moderator.set_password('test24gd')
+        moderator.save()
+        data = {'email': moderator.email,
+                'password': 'test24gd'}
+        response = client.post('/api/v1/auth/token/login/', data=data)
+        assert response.status_code == 200, (
+            'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
+            'c подтвержденным email возвращается статус 200'
+        )
+        data = {'email': moderator.email,
+                'password': 'test24gd'}
+        response = client.post('/api/v1/auth/token/login/', data=data)
+
+        assert response.data.get('token', None) != None, (
+            'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
+            'c подтвержденным email возвращается token'
+        )
+
+        data = {'email': moderator.email,
+                'password': 'test24gd'}
+        response = client.post('/api/v1/auth/token/login/', data=data)
+        token = response.data.get('token')
+        auth_client = auth_client_by_token(token)
+        response = auth_client.get('/api/v1/users/me/')
+        assert response.status_code == 200, (
+            'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
+            'c подтвержденным email возвращается верный auth токен'
+        )
+        assert response.data.get('email') == data['email'], (
+            'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
+            'c подтвержденным email возвращается верный auth токен'
+        )
+

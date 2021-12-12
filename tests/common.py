@@ -7,7 +7,7 @@ def create_users_api(user_client):
     data = {
         'username': 'TestUser1234',
         'role': 'user',
-        'email': 'testuser@gmail.fake'
+        'email': 'testuser@gmail.fake',
     }
     user_client.post('/api/v1/users/', data=data)
     user = get_user_model().objects.get(email=data['email'])
@@ -17,7 +17,8 @@ def create_users_api(user_client):
         'username': 'TestUser4321',
         'bio': 'Jdlkjd',
         'role': 'moderator',
-        'email': 'testuser2342@gmail.fake'
+        'email': 'testuser2342@gmail.fake',
+        'is_verified': 'True',
     }
     user_client.post('/api/v1/users/', data=data)
     moderator = get_user_model().objects.get(username=data['username'])
@@ -38,15 +39,22 @@ def create_non_verify_user(user_client):
 
 
 def auth_client(user):
-    token = Token.objects.create(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
     return client
 
 
+def auth_client_by_token(token):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+    return client
+
+
 def parser_link(body):
     email_lines = body.splitlines()
-    activation_link = [url for url in email_lines if '/email-verify/' in url][0]
+    activation_link = [url for url in email_lines if '/email-verify/' in url][
+        0]
     try:
         uid, token = activation_link.split("/")[-2:]
     except ValueError:
