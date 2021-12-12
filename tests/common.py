@@ -51,12 +51,22 @@ def auth_client_by_token(token):
     return client
 
 
-def parser_link(body):
+def parser_verify_link(body):
     email_lines = body.splitlines()
-    activation_link = [url for url in email_lines if '/email-verify/' in url][
-        0]
+    activation_link = [url for url in email_lines if '/email-verify/' in url]
+
     try:
-        uid, token = activation_link.split("/")[-2:]
+        uid, token = activation_link[0].split("/")[-2:]
+    except ValueError:
+        return False
+    return uid, token
+
+
+def parser_reset_link(body):
+    email_lines = body.splitlines()
+    activation_link = [url for url in email_lines if '/reset-password/' in url]
+    try:
+        uid, token = activation_link[0].split("/")[-2:]
     except ValueError:
         return False
     return uid, token

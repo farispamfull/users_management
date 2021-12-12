@@ -62,22 +62,16 @@ class ResetPasswordView(APIView):
 
 class ConfirmResetPassword(APIView):
 
-    # def refactor_user(self, serializer):
-    #     user = serializer.user
-    #     user.auth_token.delete()
-    #     user.set_password(serializer.data.get('password'))
-    #     user.last_login = now()
-    #     user.save()
-
     def post(self, request):
-        serializer = ResetPasswordConfirmSerializer(request.data)
+        serializer = ResetPasswordConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.user.set_password(serializer.data.get('password'))
+        serializer.user.set_password(serializer.data.get('new_password'))
 
         if hasattr(serializer.user, 'last_login'):
             serializer.user.last_login = now()
 
-        serializer.user.auth_token.delete()
+        if hasattr(serializer.user, 'auth_token'):
+            serializer.user.auth_token.delete()
         serializer.user.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)

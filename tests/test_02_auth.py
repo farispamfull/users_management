@@ -5,8 +5,9 @@ from django.core import mail
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
-from .common import (create_non_verify_user, parser_link, create_users_api,
-                     auth_client_by_token)
+from .common import (create_non_verify_user, parser_verify_link,
+                     create_users_api,
+                     auth_client_by_token, parser_reset_link)
 
 
 class Test02AuthAPI:
@@ -90,7 +91,7 @@ class Test02AuthAPI:
             'Проверьте, что письмо подтверждения email отправляется с правильной ссылкой на потверждение'
         )
 
-        uid, token = parser_link(mail.outbox[0].body)
+        uid, token = parser_verify_link(mail.outbox[0].body)
         assert default_token_generator.check_token(user, token) == True, (
             'Проверьте, что письмо подтверждения email отправляется с правильным токеном'
         )
@@ -101,7 +102,7 @@ class Test02AuthAPI:
     @pytest.mark.django_db(transaction=True)
     def test_04_users_email_verify(self, client):
         user = create_non_verify_user(client)
-        uid, token = parser_link(mail.outbox[0].body)
+        uid, token = parser_verify_link(mail.outbox[0].body)
         data = {}
         response = client.post('/api/v1/auth/email-verify/',
                                data=data)
@@ -204,4 +205,98 @@ class Test02AuthAPI:
         assert response.data.get('email') == data['email'], (
             'Проверить, что при POST запросе /api/v1/users/auth/token/login/'
             'c подтвержденным email возвращается верный auth токен'
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_05_users_reset_password(self, client, user_client):
+        user, moderator = create_users_api(user_client)
+        data = {}
+        response = client.post('/api/v1/auth/reset-password/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/auth/reset-password/'
+            'c не правильными данными возвращается статус 400'
+        )
+
+        data = {'email': 'wrong@gmail.com'}
+        response = client.post('/api/v1/auth/reset-password/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/auth/reset-password/'
+            'c не правильными данными возвращается статус 400'
+        )
+
+        data = {'email': moderator.email}
+        response = client.post('/api/v1/auth/reset-password/',
+                               data=data)
+        assert response.status_code == 204, (
+            'Проверить, что при POST запросе /api/v1/auth/reset-password/'
+            'c правильными данными возвращается статус 204'
+        )
+        assert len(mail.outbox) == 1, (
+            'Проверить, что при POST запросе /api/v1/auth/reset-password/'
+            'с правильными данными, отправялется письмо'
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_05_users_reset_password_link(self, client, user_client):
+        user, moderator = create_users_api(user_client)
+
+        client.post('/api/v1/auth/reset-password/',
+                    data={'email': moderator.email})
+
+        body = mail.outbox[0].body
+        assert 'reset-password/confirm/' in body, (
+            'Проверьте, что письмо на изменение пароля отправляется с правильной ссылкой на изменение'
+        )
+
+        uid, token = parser_reset_link(mail.outbox[0].body)
+        assert default_token_generator.check_token(moderator, token) == True, (
+            'Проверьте, что письмо на изменение пароля отправляется с верным токеном'
+        )
+        assert force_str(urlsafe_base64_decode(uid)) == str(moderator.id), (
+            'Проверьте, что письмо письмо на изменение пароля отправляется с правильным uid'
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_06_users_reset_password_confirm(self, client, user_client):
+        user, moderator = create_users_api(user_client)
+        client.post('/api/v1/auth/reset-password/',
+                    data={'email': moderator.email})
+
+        data = {}
+        response = client.post('/api/v1/auth/reset-password/confirm/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверьте, что при POST запросе на api/v1/auth/reset-password/confirm/'
+            'c не правильными данными возвращается статус 400'
+        )
+        data = {
+            'uid': 'AA',
+            'token': 'Wrongt54',
+            'new_password': 'Sandt14Df'
+        }
+        response = client.post('/api/v1/auth/reset-password/confirm/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверьте, что при POST запросе на api/v1/auth/reset-password/confirm/'
+            'c не правильными данными возвращается статус 400'
+        )
+        uid, token = parser_reset_link(mail.outbox[0].body)
+        data = {
+            'uid': uid,
+            'token': token,
+            'new_password': 'Sandt14Df'
+        }
+        response = client.post('/api/v1/auth/reset-password/confirm/',
+                               data=data)
+        assert response.status_code == 204, (
+            'Проверьте, что при POST запросе на api/v1/auth/reset-password/confirm/'
+            'c правильными данными возвращается статус 400'
+        )
+
+        user = get_user_model().objects.get(email=moderator.email)
+        assert user.check_password(data['new_password']) is True, (
+            'Проверьте, что POST запрос на api/v1/auth/reset-password/confirm/'
+            'c правильными данными изменяет пароль юзера'
         )

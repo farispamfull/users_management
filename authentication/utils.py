@@ -50,6 +50,7 @@ def send_token_for_email(request, user):
               )
 
 
+# плохо
 def send_reset_password_for_email(request, user):
     uid = encode_uid(user.id)
     token = default_token_generator.make_token(user)
