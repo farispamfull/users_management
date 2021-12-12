@@ -23,6 +23,7 @@ def login_user(request, user):
         sender=request.user.__class__, request=request, user=request.user
     )
     user.last_login = now()
+    user.save()
     return token
 
 
@@ -38,7 +39,7 @@ def send_token_for_email(request, user):
     uid = encode_uid(user.id)
     token = default_token_generator.make_token(user)
     current_site = get_current_site(request).domain
-    relative_link = 'auth/activate-email'
+    relative_link = 'auth/email-verify'
     absurl = f'http://{current_site}/{relative_link}/{uid}/{token}'
     mail_subject = f'Verify your email from {current_site}'
     send_mail(mail_subject,

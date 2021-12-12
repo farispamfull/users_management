@@ -1,6 +1,11 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+
+from .common import create_non_verify_user, parser_link
 
 
 class Test02AuthAPI:
@@ -75,3 +80,62 @@ class Test02AuthAPI:
         assert response.status_code == 405, (
             'Проверьте, что при DELETE запросе `/api/v1/auth/signup/` возвращается статус 405'
         )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_03_users_email_verify_link(self, user_client):
+        user = create_non_verify_user(user_client)
+        body = mail.outbox[0].body
+        assert 'auth/email-verify/' in body, (
+            'Проверьте, что письмо подтверждения email отправляется с правильной ссылкой на потверждение'
+        )
+
+        uid, token = parser_link(mail.outbox[0].body)
+        assert default_token_generator.check_token(user, token) == True, (
+            'Проверьте, что письмо подтверждения email отправляется с правильным токеном'
+        )
+        assert force_str(urlsafe_base64_decode(uid)) == str(user.id), (
+            'Проверьте, что письмо подтверждения email отправляется с правильным uid'
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_04_users_email_verify(self, client):
+        user = create_non_verify_user(client)
+        uid, token = parser_link(mail.outbox[0].body)
+        data = {}
+        response = client.post('/api/v1/auth/email-verify/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
+            'c не правильными данными возвращается статус 400'
+        )
+        data = {
+            'uid': 'WR',
+            'token': 'wrongToken'
+        }
+        response = client.post('/api/v1/auth/email-verify/',
+                               data=data)
+        assert response.status_code == 400, (
+            'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
+            'c не правильными данными возвращается статус 400'
+        )
+        data = {
+            'uid': uid,
+            'token': token
+        }
+        response = client.post('/api/v1/auth/email-verify/',
+                               data=data)
+        assert response.status_code == 204, (
+            'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
+            'c правильными данными возвращается статус 204'
+        )
+        status = get_user_model().objects.get(email=user.email).is_verified
+        assert status is True, (
+            'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
+            'статус email юзера поменялся на True'
+        )
+        # data = {'email': user.email,
+        #         'password': 'verDen134'}
+        # response = client.post('/api/v1/auth/token/login/', data=data)
+        # assert response.status_code == 200, (
+        #     'статус 200'
+        # )

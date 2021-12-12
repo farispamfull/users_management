@@ -24,8 +24,31 @@ def create_users_api(user_client):
     return user, moderator
 
 
+def create_non_verify_user(user_client):
+    # для письма
+
+    data = {
+        'username': 'TestUser5000',
+        'email': 'testuser44@gmail.fake',
+        'password': 'verDen134',
+    }
+    user_client.post('/api/v1/auth/signup/', data=data)
+    user = get_user_model().objects.get(email=data['email'])
+    return user
+
+
 def auth_client(user):
     token = Token.objects.create(user=user)
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
     return client
+
+
+def parser_link(body):
+    email_lines = body.splitlines()
+    activation_link = [url for url in email_lines if '/email-verify/' in url][0]
+    try:
+        uid, token = activation_link.split("/")[-2:]
+    except ValueError:
+        return False
+    return uid, token
