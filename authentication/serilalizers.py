@@ -17,8 +17,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                                      'validators': [validate_password]}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
+        return User.objects.create_user(**validated_data)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
