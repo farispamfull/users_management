@@ -41,7 +41,7 @@
 * При желании юзер может посмотреть или изменить свои данные (профиль) на `/api/v1/users/me/`
 * Для выхода из системы get запрос на `api/v1/auth/token/logout/`
 
-## Процесс сброса пароля <a name="reset_paasword"></a>
+## Процесс сброса пароля <a name="reset_password"></a>
 1. Пользователь отправляет post запрос с параметрами `email` на `api/v1/auth/reset-password/`
 2. Пользователю приходит письмо ссылкой на смену пароля. Пользователь отправляет
 post запрос с параметрами на `uid`,`token`,`new_password``api/v1/auth/reset-password/confirm/`

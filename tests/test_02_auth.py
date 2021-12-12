@@ -7,7 +7,7 @@ from django.utils.http import urlsafe_base64_decode
 
 from .common import (create_non_verify_user, parser_verify_link,
                      create_users_api,
-                     auth_client_by_token, parser_reset_link)
+                     auth_client_by_token, parser_reset_link, auth_client)
 
 
 class Test02AuthAPI:
@@ -134,6 +134,16 @@ class Test02AuthAPI:
         assert status is True, (
             'Проверить, что при POST запросе /api/v1/users/auth/email-verify/'
             'статус email юзера поменялся на True'
+        )
+        data = {
+            'uid': uid,
+            'token': token
+        }
+        response = client.post('/api/v1/auth/email-verify/',
+                               data=data)
+
+        assert response.status_code == 400, (
+            'проверьте, что при удачной верификации старый токен нельзя использовать'
         )
 
     @pytest.mark.django_db(transaction=True)
@@ -292,11 +302,56 @@ class Test02AuthAPI:
                                data=data)
         assert response.status_code == 204, (
             'Проверьте, что при POST запросе на api/v1/auth/reset-password/confirm/'
-            'c правильными данными возвращается статус 400'
+            'c правильными данными возвращается статус 204'
         )
 
         user = get_user_model().objects.get(email=moderator.email)
         assert user.check_password(data['new_password']) is True, (
             'Проверьте, что POST запрос на api/v1/auth/reset-password/confirm/'
             'c правильными данными изменяет пароль юзера'
+        )
+        data = {
+            'email': moderator.email,
+            'password': 'Sandt14Df',
+        }
+        response = client.post('/api/v1/auth/token/login/',
+                               data=data)
+
+        assert response.status_code == 200, (
+            'Проверьте, что при повторном POST запросе на api/v1/auth/token/login/'
+            'c новым паролем возвращается статус 200'
+        )
+
+        response = client.post('/api/v1/auth/reset-password/confirm/',
+                               data=data)
+
+        assert response.status_code == 400, (
+            'Проверьте, что при повторном POST запросе на api/v1/auth/reset-password/confirm/'
+            'cо старым токеном потверждения возвращается статус 400'
+        )
+
+    @pytest.mark.django_db(transaction=True)
+    def test_07_logout(self, client, user_client):
+        user, moderator = create_users_api(user_client)
+
+        response = client.get('/api/v1/auth/token/logout/')
+        assert response.status_code == 401, (
+            'Проверьте, что при GET запросе на /api/v1/auth/logout/'
+            'без токена авторизации возвращается статус 401'
+        )
+
+        client_user = auth_client(user)
+        response = client_user.get('/api/v1/auth/token/logout/')
+        assert response.status_code == 204, (
+            'Проверьте, что при GET запросе на /api/v1/auth/logout/'
+            'c токеном авторизации возвращается статус 204'
+        )
+        response = client_user.get('/api/v1/auth/token/logout/')
+        assert response.status_code == 401, (
+            'Проверьте, что при повторном GET запросе на /api/v1/auth/logout/'
+            'с тем же токеном возвращается статус 401'
+        )
+        response = client_user.get('/api/v1/users/me/')
+        assert response.status_code == 401, (
+            'Проверьте, что токен перестал быть действительным'
         )

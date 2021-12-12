@@ -77,7 +77,7 @@ class ConfirmResetPassword(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_logout(request):
     logout_user(request)
