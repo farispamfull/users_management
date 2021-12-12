@@ -19,7 +19,7 @@ class Test01UserAPI:
         )
 
     @pytest.mark.django_db(transaction=True)
-    def test_02_users_username_not_auth(self, client, admin):
+    def test_02_users_id_not_auth(self, client, admin):
         response = client.get(f'/api/v1/users/{admin.id}/')
 
         assert response.status_code != 404, (
@@ -168,7 +168,7 @@ class Test01UserAPI:
         )
 
     @pytest.mark.django_db(transaction=True)
-    def test_06_users_username_get_auth(self, user_client, admin):
+    def test_06_users_id_get_auth(self, user_client, admin):
         user, moderator = create_users_api(user_client)
         response = user_client.get(f'/api/v1/users/{admin.id}/')
         assert response.status_code != 404, (
@@ -194,23 +194,23 @@ class Test01UserAPI:
             'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `username`.'
         )
         assert response_data.get('email') == moderator.email, (
-            'Проверьте, что при GET запросе `/api/v1/users/{username}/` возвращаете `email`.'
+            'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `email`.'
         )
         assert response_data.get('first_name') == moderator.first_name, (
-            'Проверьте, что при GET запросе `/api/v1/users/` возвращаете `first_name`.'
+            'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `first_name`.'
         )
         assert response_data.get('last_name') == moderator.last_name, (
-            'Проверьте, что при GET запросе `/api/v1/users/` возвращаете `last_name`.'
+            'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `last_name`.'
         )
         assert response_data.get('bio') == moderator.bio, (
-            'Проверьте, что при GET запросе `/api/v1/users/` возвращаете `bio`.'
+            'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `bio`.'
         )
         assert response_data.get('role') == moderator.role, (
-            'Проверьте, что при GET запросе `/api/v1/users/` возвращаете `role`.'
+            'Проверьте, что при GET запросе `/api/v1/users/{id}/` возвращаете `role`.'
         )
 
     @pytest.mark.django_db(transaction=True)
-    def test_07_users_username_patch_auth(self, user_client, admin):
+    def test_07_users_id_patch_auth(self, user_client, admin):
         user, moderator = create_users_api(user_client)
         data = {
             'first_name': 'Admin',
@@ -232,13 +232,8 @@ class Test01UserAPI:
         )
         response = user_client.patch(f'/api/v1/users/{user.id}/', data={'role': 'admin'})
         assert response.status_code == 200, (
-            'Проверьте, что при PATCH запросе `/api/v1/users/{id}/` '
+            'Проверьте, что при PATCH запросе `/api/v1/users/{id}/`'
             'с токеном авторизации возвращается статус 200'
-        )
-        client_user = auth_client(user)
-        response = client_user.get(f'/api/v1/users/{admin.id}/')
-        assert response.status_code == 200, (
-            'Проверьте, что при PATCH запросе `/api/v1/users/{id}/` можно изменить роль пользователя'
         )
 
     @pytest.mark.django_db(transaction=True)
@@ -272,7 +267,7 @@ class Test01UserAPI:
 
         response = client_user.get(f'/api/v1/users/{admin.id}/')
         assert response.status_code == 200, (
-            f'Проверьте, что при GET запросе `/api/v1/users/{{username}}/` '
+            f'Проверьте, что при GET запросе `/api/v1/users/{{id}}/` '
             f'с токеном авторизации {user_name} возвращается статус 200'
         )
         data = {
@@ -282,12 +277,12 @@ class Test01UserAPI:
         }
         response = client_user.patch(f'/api/v1/users/{admin.username}/', data=data)
         assert response.status_code == 403, (
-            f'Проверьте, что при PATCH запросе `/api/v1/users/{{username}}/` '
+            f'Проверьте, что при PATCH запросе `/api/v1/users/{{id}}/` '
             f'с токеном авторизации {user_name} возвращается статус 403'
         )
         response = client_user.delete(f'/api/v1/users/{admin.id}/')
         assert response.status_code == 403, (
-            f'Проверьте, что при DELETE запросе `/api/v1/users/{{username}}/` '
+            f'Проверьте, что при DELETE запросе `/api/v1/users/{{id}}/` '
             f'с токеном авторизации {user_name} возвращается статус 403'
         )
 
